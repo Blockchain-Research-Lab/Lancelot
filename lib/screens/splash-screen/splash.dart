@@ -9,7 +9,8 @@ class SplashScreen extends StatelessWidget {
           gifPath: 'assets/images/splash1.gif',
           gifWidth: 269,
           gifHeight: 474,
-          nextScreen: LoginPage(),
+         // nextScreen: const LoginPage(title: 'LoginPage',),
+         nextScreen:  LoginPage(),
           duration: const Duration(milliseconds: 3515),
           onInit: () async {
             debugPrint("onInit");
