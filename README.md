@@ -10,14 +10,12 @@ Welcome to **Lancelot**, the ultimate guardian of your attendance needs! 🏆 Wh
 
 ## 📸 Screenshots
 
-<img src="assets/images/manual.jpeg" alt="Manual Attendance" width="300"/>
 
-
-<img src="assets/images/qr.jpeg" alt="QR Code Scan" width="300"/>
-
-
-<img src="assets/images/studentdata.jpeg" alt="Student Data" width="300"/>
-
+<div style="display: flex; justify-content: space-between; align-items: center;">
+  <img src="assets/images/manual.jpeg" alt="Manual Attendance" width="250" style="margin-right: 20px;"/>
+  <img src="assets/images/qr.jpeg" alt="QR Code Scan" width="250" style="margin-right: 20px;"/>
+  <img src="assets/images/studentdata.jpeg" alt="Student Data" width="250"/>
+</div>
 
 ## 📦 Installation
 
