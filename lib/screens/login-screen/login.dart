@@ -5,6 +5,7 @@ import 'package:lancelot/config/config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lancelot/screens/home/home.dart';
 
+
 class LoginPage extends StatefulWidget {
   @override
   _LoginPageState createState() => _LoginPageState();
@@ -25,12 +26,25 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _checkLoginStatus() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? accessToken = prefs.getString('access_token');
-    if (accessToken != null) {
+    if (accessToken != null && !_isTokenExpired(accessToken)) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const HomeScreenPage()),
       );
+    } else if (prefs.getString('refresh_token') != null) {
+      await _refreshAccessToken();
     }
+  }
+
+  // Check if token is expired
+  bool _isTokenExpired(String token) {
+    final parts = token.split('.');
+    if (parts.length != 3) return true;
+
+    final payload = jsonDecode(utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))));
+    final exp = payload['exp'] as int;
+
+    return DateTime.now().millisecondsSinceEpoch / 1000 > exp;
   }
 
   // Handle the login API call
@@ -55,7 +69,7 @@ class _LoginPageState extends State<LoginPage> {
       await prefs.setString('access_token', data['access_token']);
       await prefs.setString('refresh_token', data['refresh_token']);
       await prefs.setString('username', data['username']);
-      
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const HomeScreenPage()),
@@ -70,6 +84,37 @@ class _LoginPageState extends State<LoginPage> {
     setState(() {
       isLoading = false;
     });
+  }
+
+  // Handle refreshing the access token
+  Future<void> _refreshAccessToken() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? refreshToken = prefs.getString('refresh_token');
+
+    if (refreshToken != null) {
+      final url = Uri.parse('${Config.apiBaseUrl}/getaccesstoken/?refresh_token=$refreshToken');
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        await prefs.setString('access_token', data['access_token']);
+        // Retry the original request if needed
+      } else {
+        // Logout the user if the refresh token is also invalid
+        await _logout();
+      }
+    }
+  }
+
+  // Logout user
+  Future<void> _logout() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => LoginPage()),
+    );
   }
 
   @override
@@ -123,6 +168,8 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
+
+
 
 
 class MyTextField extends StatelessWidget {
