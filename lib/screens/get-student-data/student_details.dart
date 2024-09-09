@@ -65,6 +65,49 @@ class _StudentListScreenState extends State<StudentListScreen> {
       filteredStudents = filtered;
     });
   }
+  Future<void> _markAbsent(String rollNo) async {
+  if (rollNo.isEmpty) {
+    _showMessage("Roll number is required.");
+    return;
+  }
+
+  setState(() {
+    isSubmitting = true;
+  });
+
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  String? accessToken = prefs.getString('access_token');
+
+  if (accessToken == null || accessToken.isEmpty) {
+    _showMessage("Authorization token is missing. Please log in.");
+    setState(() {
+      isSubmitting = false;
+    });
+    return;
+  }
+
+  final url = Uri.parse('${Config.apiBaseUrl}/absent/');
+  final response = await http.post(
+    url,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': accessToken,
+    },
+    body: jsonEncode({
+      'roll_no': rollNo,
+    }),
+  );
+
+  if (response.statusCode == 200) {
+    _showMessage("Marked as absent successfully!");
+  } else {
+    _showMessage("Failed to mark absent. Code: ${response.statusCode}, Body: ${response.body}");
+  }
+
+  setState(() {
+    isSubmitting = false;
+  });
+}
 
   Future<void> _submitManualAttendance(String rollNo) async {
     if (rollNo.isEmpty) {
@@ -109,19 +152,25 @@ class _StudentListScreenState extends State<StudentListScreen> {
       isSubmitting = false;
     });
   }
-
-  void _toggleAttendance(int index) {
-    final student = filteredStudents[index];
-    if (!student['is_present']) {
-      _submitManualAttendance(student['univ_roll'].toString()).then((_) {
-        setState(() {
-          filteredStudents[index]['is_present'] = true;
-        });
+void _toggleAttendance(int index) {
+  final student = filteredStudents[index];
+  if (!student['is_present']) {
+    // Mark present if currently absent
+    _submitManualAttendance(student['univ_roll'].toString()).then((_) {
+      setState(() {
+        filteredStudents[index]['is_present'] = true;
       });
-    } else {
-      _showMessage('${student['name']} is already marked as present.');
-    }
+    });
+  } else {
+    // Mark absent if currently present
+    _markAbsent(student['univ_roll'].toString()).then((_) {
+      setState(() {
+        filteredStudents[index]['is_present'] = false;
+      });
+    });
   }
+}
+
 
   void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
